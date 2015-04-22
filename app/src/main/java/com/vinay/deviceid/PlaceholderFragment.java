@@ -9,19 +9,15 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
-import java.io.IOException;
 
 /**
  * A placeholder fragment containing a simple view.
  */
 public class PlaceholderFragment extends Fragment {
+
+    private static final String TAG = "PLACE";
 
     public PlaceholderFragment() {
     }
@@ -31,36 +27,43 @@ public class PlaceholderFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        getDeviceSpecs(getDeviceInfo());
-
-        return rootView;
-    }
-
-    private String getDeviceInfo() {
         Context context = getActivity().getApplicationContext();
         String serviceName = context.TELEPHONY_SERVICE;
         TelephonyManager m_telephonyManager = (TelephonyManager) context.getSystemService(serviceName);
         String imei, imsi;
         imei = m_telephonyManager.getDeviceId();
         imsi = m_telephonyManager.getSubscriberId();
-        Log.d("PLACE", imei);
-        Log.d("PLACE", imsi);
-        Log.d("PLACE", Build.MODEL); // Model number/name
-        Log.d("PLACE", Build.DEVICE); // Device code name
+
+        Log.d(TAG, Build.MODEL); // Model number/name
+        TextView imei_t = (TextView) rootView.findViewById(R.id.imei);
+        imei_t.setText(imei_t.getText() + imei);
+        TextView imsi_t = (TextView) rootView.findViewById(R.id.imsi);
+        imsi_t.setText(imsi_t.getText() + imsi);
+
+        TextView bands = (TextView) rootView.findViewById(R.id.bands);
+        TextView model = (TextView) rootView.findViewById(R.id.model);
+        model.setText(model.getText() + Build.MANUFACTURER.toUpperCase() + " " + Build.MODEL + "(" + Build.PRODUCT + ")");
+
+        getDeviceSpecs(getDeviceInfo(), bands);
+
+        return rootView;
+    }
+
+    private String getDeviceInfo() {
+        /*Log.d("PLACE", Build.DEVICE); // Device code name
         Log.d("PLACE", Build.BRAND);
         Log.d("PLACE", Build.PRODUCT); // Product name internal
-        Log.d("PLACE", Build.MANUFACTURER);
+        Log.d("PLACE", Build.MANUFACTURER);*/
         return Build.MODEL;
     }
 
-    private void getDeviceSpecs(String s) {
-        Document doc = null;
+    private void getDeviceSpecs(String s, TextView bands) {
         s = s.replaceAll(" ", "%20");
-        Log.d("PLACE", s);
+        Log.d(TAG, s);
 
-        GetDeviceTask t = new GetDeviceTask();
+        GetDeviceTask t = new GetDeviceTask(bands);
         Toast.makeText(getActivity().getApplicationContext(), "Connecting to server...", Toast.LENGTH_SHORT).show();
-        t.execute("http://pdadb.net/index.php?m=search&quick=1&exp=");
+        t.execute(s);
 
     }
 }
