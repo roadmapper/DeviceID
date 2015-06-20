@@ -2,7 +2,6 @@ package com.vinay.deviceid;
 
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.TextView;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -10,14 +9,15 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class GetDeviceTask extends AsyncTask<String, Void, String> {
     private static final String TAG = "GETDEVICETASK";
 
-    private TextView bands_t;
+    //private TextView bands_t;
 
-    public GetDeviceTask(TextView bands_t){
-        this.bands_t = bands_t;
+    public GetDeviceTask(/*TextView bands_t*/) {
+        //this.bands_t = bands_t;
     }
 
     @Override
@@ -49,15 +49,15 @@ public class GetDeviceTask extends AsyncTask<String, Void, String> {
             Elements bands = doc.select("tr > td");
 
             for (int i = 0; i < bands.size(); i++) {
-                if (bands.get(i).text().equals("Cellular Networks:")){
+                if (bands.get(i).text().equals("Cellular Networks:")) {
                     Log.d(TAG, "" + i);
-                    Log.d(TAG, bands.get(i+1).text());
-                    bands_string += bands.get(i+1).text();
+                    Log.d(TAG, bands.get(i + 1).text());
+                    bands_string += bands.get(i + 1).text();
                 }
-                if (bands.get(i).text().equals("Secondary Cellular Networks:")){
+                if (bands.get(i).text().equals("Secondary Cellular Networks:")) {
                     Log.d(TAG, "" + i);
-                    Log.d(TAG,bands.get(i+1).text());
-                    bands_string += "," + bands.get(i+1).text();
+                    Log.d(TAG, bands.get(i + 1).text());
+                    bands_string += "," + bands.get(i + 1).text();
                 }
 
             }
@@ -69,6 +69,22 @@ public class GetDeviceTask extends AsyncTask<String, Void, String> {
 
     @Override
     protected void onPostExecute(String bands) {
-        bands_t.setText(bands);
+        //bands_t.setText(bands);
+        DeviceFragment.insertData("Bands", bands);
+        String[] bands_arr = bands.split(",");
+        ArrayList<Band> bandsArrL = new ArrayList<Band>();
+        /*for (int i = 0; i < bands_arr.length; i++) {
+            Band band = new Band();
+            if (bands_arr[i].contains("GSM")) {
+
+                band.setBand("GSM");
+                band.setFrequency(Integer.parseInt(bands_arr[i].replace("GSM", "")));
+            }
+            if (bands_arr[i].contains("UMTS")) {}
+            if (bands_arr[i].contains("LTE")) {}
+
+            bandsArrL.add(band);
+        }*/
+        //DeviceFragment.setBands();
     }
 }
