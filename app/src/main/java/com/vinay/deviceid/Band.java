@@ -1,21 +1,29 @@
 package com.vinay.deviceid;
 
 public class Band {
-    private int frequency;
+    private String frequency;
     private int band;
     private String technology;
 
-    public Band(int frequency, int band, String technology) {
+    // For GSM
+    public Band(String frequency, String technology) {
+        this.frequency = frequency;
+        this.band = 0;
+        this.technology = technology;
+    }
+
+    // For UMTS/LTE
+    public Band(String frequency, int band, String technology) {
         this.frequency = frequency;
         this.band = band;
         this.technology = technology;
     }
 
-    public int getFrequency() {
+    public String getFrequency() {
         return frequency;
     }
 
-    public void setFrequency(int frequency) {
+    public void setFrequency(String frequency) {
         this.frequency = frequency;
     }
 

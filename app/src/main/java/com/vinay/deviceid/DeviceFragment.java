@@ -15,14 +15,10 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-/**
- * A placeholder fragment containing a simple view.
- */
 public class DeviceFragment extends Fragment {
 
     private static final String TAG = "DeviceFragment";
@@ -70,7 +66,7 @@ public class DeviceFragment extends Fragment {
                             .getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
                     cm.setPrimaryClip(ClipData.newPlainText(item.get(from[0]), item.get(from[1])));
                 }
-                showToast("Copied " + item.get(from[0]) + " to the clipboard.");
+                Helper.showToast(getActivity().getApplicationContext(), "Copied " + item.get(from[0]) + " to the clipboard.");
                 return true;
             }
         });
@@ -94,7 +90,14 @@ public class DeviceFragment extends Fragment {
         insertData("Model", Build.MANUFACTURER.toUpperCase()
                 + " " + Build.MODEL + " (" + Build.PRODUCT + ")");
         adapter.notifyDataSetChanged();
-        return Build.MODEL;
+
+        String model = Build.MODEL;
+
+        // need to strip the "LG-" as pdadb.net does not like that
+        if (Build.MANUFACTURER.equals("LGE"))
+            model = model.substring(0,3);
+
+        return model;
     }
 
     private void getOnboardInfo() {
@@ -136,7 +139,7 @@ public class DeviceFragment extends Fragment {
         Log.d(TAG, s);
 
         GetDeviceTask t = new GetDeviceTask();
-        showToast("Connecting to server...");
+        Helper.showToast(getActivity().getApplicationContext(), "Connecting to server...");
         t.execute(s);
 
     }
@@ -156,10 +159,4 @@ public class DeviceFragment extends Fragment {
     public static void setBands(ArrayList<Band> bands1) {
         bands = bands1;
     }
-
-
-    private void showToast(String msg) {
-        Toast.makeText(getActivity().getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-    }
-
 }

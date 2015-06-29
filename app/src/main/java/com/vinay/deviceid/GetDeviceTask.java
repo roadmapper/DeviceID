@@ -24,7 +24,9 @@ public class GetDeviceTask extends AsyncTask<String, Void, String> {
     protected String doInBackground(String... params) {
         Document doc = null;
         try {
-            doc = Jsoup.connect("http://pdadb.net/index.php?m=search&quick=1&exp=" + params[0]).get();
+            String url = "http://pdadb.net/index.php?m=search&quick=1&exp=" + params[0];
+            Log.d(TAG, url);
+            doc = Jsoup.connect(url).get();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -57,7 +59,7 @@ public class GetDeviceTask extends AsyncTask<String, Void, String> {
                 if (bands.get(i).text().equals("Secondary Cellular Networks:")) {
                     Log.d(TAG, "" + i);
                     Log.d(TAG, bands.get(i + 1).text());
-                    bands_string += "," + bands.get(i + 1).text();
+                    bands_string += ", " + bands.get(i + 1).text();
                 }
 
             }
@@ -72,19 +74,42 @@ public class GetDeviceTask extends AsyncTask<String, Void, String> {
         //bands_t.setText(bands);
         DeviceFragment.insertData("Bands", bands);
         String[] bands_arr = bands.split(",");
-        ArrayList<Band> bandsArrL = new ArrayList<Band>();
-        /*for (int i = 0; i < bands_arr.length; i++) {
-            Band band = new Band();
+        ArrayList<Band> bandsArrL = new ArrayList<>();
+        for (int i = 0; i < bands_arr.length; i++) {
+            Band band = null;
+            bands_arr[i] = bands_arr[i].replaceFirst(" ", "");
             if (bands_arr[i].contains("GSM")) {
-
-                band.setBand("GSM");
-                band.setFrequency(Integer.parseInt(bands_arr[i].replace("GSM", "")));
+                band = new Band(bands_arr[i].replace("GSM", ""), "GSM");
             }
-            if (bands_arr[i].contains("UMTS")) {}
-            if (bands_arr[i].contains("LTE")) {}
-
+            else if (bands_arr[i].contains("TD-SCDMA")) {
+                band = new Band(bands_arr[i].replace("TD-SCDMA", ""), "TD-SCDMA");
+            }
+            else if (bands_arr[i].contains("UMTS")) {
+                band = createUMTS_LTEBand(bands_arr[i], "UMTS");
+            }
+            else if (bands_arr[i].contains("LTE")) { // Covers TD-LTE and LTE
+                band = createUMTS_LTEBand(bands_arr[i], "LTE");
+            }
+            else if (bands_arr[i].contains("CDMA")) {
+                band = createCDMABand(bands_arr[i]);
+            }
             bandsArrL.add(band);
-        }*/
+        }
+        Log.d(TAG, bandsArrL.toString());
         //DeviceFragment.setBands();
+    }
+
+    private Band createUMTS_LTEBand(String bandString, String technology) {
+        String temp = bandString.replace(technology, ""); // make it "850 (B0)"
+        int bandNum = Integer.parseInt(temp.substring(temp.indexOf("(") + 1, temp.indexOf(")")).replace("B", ""));
+        String frequency = temp.substring(0, temp.indexOf("(") - 1);
+        return new Band(frequency, bandNum, technology);
+    }
+
+    private Band createCDMABand(String bandString) {
+        String temp = bandString.replace("CDMA", ""); // make it "800 (BC0)"
+        int bandNum = Integer.parseInt(temp.substring(temp.indexOf("(") + 1, temp.indexOf(")")).replace("BC", ""));
+        String frequency = temp.substring(0, temp.indexOf("(") - 1);
+        return new Band(frequency, bandNum, "CDMA");
     }
 }
