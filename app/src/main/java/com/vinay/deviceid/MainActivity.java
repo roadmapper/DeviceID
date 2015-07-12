@@ -1,5 +1,6 @@
 package com.vinay.deviceid;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
@@ -37,7 +38,12 @@ public class MainActivity extends AppCompatActivity {
             case android.R.id.home:
                 finish();
                 return true;
-            case R.id.action_settings:
+            /*case R.id.action_settings:
+                return true;*/
+            case R.id.reset:
+                SharedPreferences settings = getSharedPreferences(Helper.Preferences.PREFS_NAME, 0);
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putString("Bands", null);
                 return true;
         }
         return super.onOptionsItemSelected(item);

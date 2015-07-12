@@ -42,4 +42,18 @@ public class Band {
     public void setTechnology(String technology) {
         this.technology = technology;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Band)) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+        Band b = (Band) obj;
+        if (b.getBand() == this.getBand() && b.getFrequency().equals(this.getFrequency()) && b.getTechnology().equals(this.getTechnology()))
+            return true;
+        return false;
+    }
 }
