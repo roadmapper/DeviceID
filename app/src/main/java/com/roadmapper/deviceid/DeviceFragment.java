@@ -1,4 +1,4 @@
-package com.vinay.deviceid;
+package com.roadmapper.deviceid;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -46,6 +46,7 @@ public class DeviceFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         context = getActivity().getApplicationContext();
+        getActivity().setTheme(R.style.AppTheme);
 
         final View view = inflater.inflate(R.layout.fragment_device, container, false);
         final ListView listview = (ListView) view.findViewById(R.id.listView);

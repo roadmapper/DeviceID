@@ -1,4 +1,4 @@
-package com.vinay.deviceid;
+package com.roadmapper.deviceid;
 
 import android.os.AsyncTask;
 import android.util.Log;

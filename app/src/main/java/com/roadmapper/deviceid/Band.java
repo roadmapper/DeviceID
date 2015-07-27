@@ -1,8 +1,8 @@
-package com.vinay.deviceid;
+package com.roadmapper.deviceid;
 
 public class Band {
     private String frequency;
-    private int band;
+    private Integer band;
     private String technology;
 
     // For GSM
@@ -27,11 +27,11 @@ public class Band {
         this.frequency = frequency;
     }
 
-    public int getBand() {
+    public Integer getBand() {
         return band;
     }
 
-    public void setBand(int band) {
+    public void setBand(Integer band) {
         this.band = band;
     }
 
@@ -52,8 +52,17 @@ public class Band {
             return true;
         }
         Band b = (Band) obj;
-        if (b.getBand() == this.getBand() && b.getFrequency().equals(this.getFrequency()) && b.getTechnology().equals(this.getTechnology()))
+        if (b.getBand().equals(this.getBand()) && b.getTechnology().equals(this.getTechnology()))
             return true;
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return 19 * (this.band.hashCode() + this.technology.hashCode());
+    }
+
+    public String toString() {
+        return this.getBand() + ", " + this.getFrequency() + ", " + this.getTechnology();
     }
 }

@@ -1,4 +1,4 @@
-package com.vinay.deviceid;
+package com.roadmapper.deviceid;
 
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;

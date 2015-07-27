@@ -1,4 +1,4 @@
-package com.vinay.deviceid;
+package com.roadmapper.deviceid;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -14,6 +14,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setTheme(R.style.AppTheme);
         setContentView(R.layout.activity_main);
 
         // Get the ViewPager and set it's PagerAdapter so that it can display items
@@ -51,10 +52,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupViewPager(ViewPager viewPager) {
         ViewPagerAdapter adapter = new ViewPagerAdapter(getSupportFragmentManager());
-        adapter.addFrag(new DeviceFragment(
-                getResources().getColor(R.color.accent_material_light)), "Device");
-        adapter.addFrag(new NetworkFragment(
-                getResources().getColor(R.color.accent_material_light)), "Networks");
+        adapter.addFrag(new DeviceFragment(), "Device");
+        adapter.addFrag(new NetworkFragment(), "Networks");
         viewPager.setAdapter(adapter);
     }
 }
