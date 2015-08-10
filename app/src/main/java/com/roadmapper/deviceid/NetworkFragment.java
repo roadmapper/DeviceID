@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -23,12 +24,18 @@ import java.util.Locale;
 public class NetworkFragment extends Fragment {
     private static final String TAG = "NetworkFragment";
 
-    static Context context;
+    private static Context context;
+    private static View view;
 
-    Spinner countrySpinner;
-    static ListView listView;
-    static NetworkAdapter adapter;
+    private Spinner countrySpinner;
+    private static ListView listView;
+    private static NetworkAdapter adapter;
     ArrayList<Network> networks;
+
+    private static final ArrayList<String> notCountries = new ArrayList<String>() {{
+        add("Latin America");
+        add("Europe");
+    }};
 
     int color;
 
@@ -44,7 +51,7 @@ public class NetworkFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.fragment_network, container, false);
+        view = inflater.inflate(R.layout.fragment_network, container, false);
         context = this.getActivity().getApplicationContext();
         listView = (ListView) view.findViewById(R.id.listView2);
 
@@ -55,6 +62,7 @@ public class NetworkFragment extends Fragment {
                 GetNetworksTask task = new GetNetworksTask();
                 HashMap<String, String> tech = new HashMap<String, String>();
                 tech.put("UMTS", (String) countrySpinner.getSelectedItem());
+                tech.put("LTE", (String) countrySpinner.getSelectedItem());
                 task.execute(tech);
                 Helper.showSnackbar(view, "Finding networks...");
             }
@@ -85,7 +93,7 @@ public class NetworkFragment extends Fragment {
             //
             // locale.get
             String country = locale.getDisplayCountry();
-            if (country.trim().length()>0 && !countries.contains(country)) {
+            if (country.trim().length() > 0 && !countries.contains(country) && !notCountries.contains(country)) {
                 countries.add(country);
             }
         }
@@ -99,67 +107,141 @@ public class NetworkFragment extends Fragment {
     }
 
     public static void updateList(ArrayList<Network> networks){
-        ArrayList<Network> supported_networks = new ArrayList<>();
+        if (networks.size() != 0) {
+            ArrayList<Network> supported_networks = new ArrayList<>();
+            HashMap<Key, ArrayList<Network>> supported_consolidated_networks = new HashMap<>();
 
-        SharedPreferences settings = context.getSharedPreferences(Helper.Preferences.PREFS_NAME, 0);
-        String bands = settings.getString("Bands", null);
+            SharedPreferences settings = context.getSharedPreferences(Helper.Preferences.PREFS_NAME, 0);
+            String bands = settings.getString("Bands", "");
 
-        String[] bands_arr = bands.split(",");
-        ArrayList<Band> bandsArrL = new ArrayList<>();
-        for (int i = 0; i < bands_arr.length; i++) {
-            Band band = null;
-            bands_arr[i] = bands_arr[i].replaceFirst(" ", "");
-            if (bands_arr[i].contains(Helper.Technology.GSM)) {
-                band = Helper.createGSM_TDSCDMABand(bands_arr[i], Helper.Technology.GSM);
-            } else if (bands_arr[i].contains(Helper.Technology.TD_SCDMA)) {
-                band = Helper.createGSM_TDSCDMABand(bands_arr[i], Helper.Technology.TD_SCDMA);
-            } else if (bands_arr[i].contains(Helper.Technology.UMTS)) {
-                band = Helper.createUMTS_LTEBand(bands_arr[i], Helper.Technology.UMTS);
-            } else if (bands_arr[i].contains(Helper.Technology.LTE)) { // Covers TD-LTE and LTE
-                band = Helper.createUMTS_LTEBand(bands_arr[i], Helper.Technology.LTE);
-            } else if (bands_arr[i].contains(Helper.Technology.CDMA)) {
-                band = Helper.createCDMABand(bands_arr[i]);
+            String[] bands_arr = bands.split(",");
+            ArrayList<Band> bandsArrL = new ArrayList<>();
+            for (int i = 0; i < bands_arr.length; i++) {
+                Band band = null;
+                bands_arr[i] = bands_arr[i].replaceFirst(" ", "");
+                if (bands_arr[i].contains(Helper.Technology.GSM)) {
+                    band = Helper.createGSM_TDSCDMABand(bands_arr[i], Helper.Technology.GSM);
+                } else if (bands_arr[i].contains(Helper.Technology.TD_SCDMA)) {
+                    band = Helper.createGSM_TDSCDMABand(bands_arr[i], Helper.Technology.TD_SCDMA);
+                } else if (bands_arr[i].contains(Helper.Technology.UMTS)) {
+                    band = Helper.createUMTS_LTEBand(bands_arr[i], Helper.Technology.UMTS);
+                } else if (bands_arr[i].contains(Helper.Technology.LTE)) { // Covers TD-LTE and LTE
+                    band = Helper.createUMTS_LTEBand(bands_arr[i], Helper.Technology.LTE);
+                } else if (bands_arr[i].contains(Helper.Technology.CDMA)) {
+                    band = Helper.createCDMABand(bands_arr[i]);
+                }
+                bandsArrL.add(band);
             }
-            bandsArrL.add(band);
-        }
 
-        for(Network network : networks) {
-            if (bandsArrL.contains(network.getBand())) {
-                Log.d(TAG, network.getBand().toString());
-                supported_networks.add(network);
+            for(Network network : networks) {
+                if (bandsArrL.contains(network.getBand())) {
+                    Log.d(TAG, network.getBand().toString());
+                    supported_networks.add(network);
+                }
             }
+
+            for (Network network : supported_networks) {
+                if (!supported_consolidated_networks.containsKey(new Key(network.getOperator(), network.getBand().getTechnology()))){
+                    ArrayList<Network> all_networks = new ArrayList<>();
+                    all_networks.add(network);
+                    supported_consolidated_networks.put(new Key(network.getOperator(), network.getBand().getTechnology()), all_networks);
+                } else {
+                    supported_consolidated_networks.get(new Key(network.getOperator(), network.getBand().getTechnology())).add(network);
+                }
+            }
+
+            adapter = new NetworkAdapter(supported_consolidated_networks);
+            listView.setAdapter(adapter);
         }
-        adapter = new NetworkAdapter(context, supported_networks);
-        listView.setAdapter(adapter);
+        else {
+            listView.setAdapter(null);
+            Helper.showSnackbar(view, "No networks found.");
+        }
     }
 
-    private static class NetworkAdapter extends ArrayAdapter<Network> {
-        public NetworkAdapter(Context context, ArrayList<Network> networks) {
-            super(context, 0, networks);
+    private static class NetworkAdapter extends BaseAdapter {
+
+        private HashMap<Key, ArrayList<Network>> mData = new HashMap<>();
+        private Key[] mKeys;
+        public NetworkAdapter(HashMap<Key, ArrayList<Network>> data){
+            mData  = data;
+            mKeys = mData.keySet().toArray(new Key[data.size()]);
+        }
+
+        @Override
+        public int getCount() {
+            return mData.size();
+        }
+
+        @Override
+        public ArrayList<Network> getItem(int position) {
+            return mData.get(mKeys[position]);
+        }
+
+        @Override
+        public long getItemId(int arg0) {
+            return arg0;
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             // Get the data item for this position
-            Network network = getItem(position);
+
+            Key network_key = mKeys[position];
+            ArrayList<Network> networks = getItem(position);
+
+            //Network network = getItem(position);
             // Check if an existing view is being reused, otherwise inflate the view
             if (convertView == null) {
-                convertView = LayoutInflater.from(getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
+                convertView = LayoutInflater.from(NetworkFragment.context).inflate(android.R.layout.simple_list_item_2, parent, false);
             }
-            /*// Lookup view for data population
-            TextView tvName = (TextView) convertView.findViewById(R.id.tvName);
-            TextView tvHome = (TextView) convertView.findViewById(R.id.tvHome);
-            // Populate the data into the template view using the data object
-            tvName.setText(user.name);
-            tvHome.setText(user.hometown);*/
+
             TextView tv = (TextView) convertView.findViewById(android.R.id.text1);
-            tv.setText(network.getOperator());
+            tv.setText(network_key.operator);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(network_key.technology);
+            sb.append(": ");
+            for (Network network : networks) {
+                sb.append(network.getBand().getFrequency());
+                sb.append(" MHz (Band ");
+                sb.append(network.getBand().getBand());
+                sb.append("), ");
+            }
+            sb.replace(sb.length() - 2, sb.length(), "");
+
 
             TextView tv2 = (TextView) convertView.findViewById(android.R.id.text2);
-            tv2.setText(network.getBand().getTechnology() + ": " + network.getBand().getFrequency() + " MHz (Band " + network.getBand().getBand() + ")");
+            tv2.setText(sb.toString());
 
             // Return the completed view to render on screen
             return convertView;
         }
+    }
+
+    private static class Key {
+
+        private final String operator;
+        private final String technology;
+
+        public Key(String operator, String technology) {
+            this.operator = operator;
+            this.technology = technology;
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Key)) return false;
+            Key key = (Key) o;
+            return operator.equals(key.operator) && technology.equals(key.technology);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * operator.hashCode() + technology.hashCode();
+        }
+
     }
 }

@@ -34,29 +34,4 @@ public class ViewPagerAdapter extends FragmentPagerAdapter {
     public CharSequence getPageTitle(int position) {
         return mFragmentTitleList.get(position);
     }
-
-
-    /*private String tabTitles[] = new String[] { "Tab1", "Tab2", "Tab3" };
-    private Context context;
-
-    public MyFragmentPagerAdapter(FragmentManager fm, Context context) {
-        super(fm);
-        this.context = context;
-    }
-
-    @Override
-    public int getCount() {
-        return PAGE_COUNT;
-    }
-
-    @Override
-    public Fragment getItem(int position) {
-        return ItemFragment.newInstance("" + (position + 1), "test");
-    }
-
-    @Override
-    public CharSequence getPageTitle(int position) {
-        // Generate title based on item position
-        return tabTitles[position];
-    }*/
 }
