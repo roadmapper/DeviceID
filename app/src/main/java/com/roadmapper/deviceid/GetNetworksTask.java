@@ -44,7 +44,7 @@ public class GetNetworksTask extends AsyncTask<HashMap<String, String>, Void, Ar
                 e.printStackTrace();
             }
             getLTE(doc, country, false);
-            //getLTE(doc2, country, true); // Handle Europe differently
+            getLTE(doc2, country, true); // Handle Europe differently
         }
         return networks;
     }
@@ -78,17 +78,20 @@ public class GetNetworksTask extends AsyncTask<HashMap<String, String>, Void, Ar
             //Log.d(TAG, tds.get(0).text() + ":" + tds.get(1).text());
             if (tds.get(1).text().contains(country)) {
                 if (!(tds.get(3).text().contains("?"))) {
-                    if (tds.get(3).text().contains("/")){
-                        String[] temp = tds.get(3).text().split(" / ");
+                    if (tds.get(3).text().contains("/")) {
+                        String[] temp = tds.get(3).text().replaceAll(" ", "").split("/");
                         ArrayList<String> bands = new ArrayList<>(Arrays.asList(temp));
                         for (String band : bands) {
-                            Log.d(TAG, tds.get(0).text() + ", " + tds.get(1).text().trim() + ", " + Helper.getBand(band, "UMTS").getFrequency());
-                            networks.add(new Network(tds.get(0).text(), tds.get(1).text().trim(), Helper.getBand(band, "UMTS")));
+                            Log.d(TAG, tds.get(0).text() + ", " + tds.get(1).text().trim() + ", "
+                                    + Helper.getBand(band, "UMTS").getFrequency());
+                            networks.add(new Network(tds.get(0).text(), tds.get(1).text().trim(),
+                                    Helper.getBand(band, "UMTS")));
                         }
-                    }
-                    else {
-                        Log.d(TAG, tds.get(0).text() + ", " + tds.get(1).text().trim() + ", " + Helper.getBand(tds.get(3).text(), "UMTS").getFrequency());
-                        networks.add(new Network(tds.get(0).text(), tds.get(1).text().trim(), Helper.getBand(tds.get(3).text(), "UMTS")));
+                    } else {
+                        Log.d(TAG, tds.get(0).text() + ", " + tds.get(1).text().trim() + ", "
+                                + Helper.getBand(tds.get(3).text(), "UMTS").getFrequency());
+                        networks.add(new Network(tds.get(0).text(), tds.get(1).text().trim(),
+                                Helper.getBand(tds.get(3).text(), "UMTS")));
                     }
 
                 }
@@ -99,15 +102,19 @@ public class GetNetworksTask extends AsyncTask<HashMap<String, String>, Void, Ar
 
     private void getLTE(Document doc, String country, boolean isEurope) {
         if (isEurope)
-            getNetworksLTE(doc.getElementById("Commercial_deployments"), country);
+            getNetworksLTE(doc.getElementById("Commercial_deployments")
+                    .parent().nextElementSibling(), country);
         else {
             ArrayList<Element> regions = new ArrayList<>();
             // weird divs before tables on visible on wiki
             regions.add(doc.getElementById("Africa").parent().nextElementSibling().child(0));
             regions.add(doc.getElementById("Caribbean").parent().nextElementSibling().child(0));
-            regions.add(doc.getElementById("South_America_and_Central_America_.28APT_band_plan.29").parent().nextElementSibling().child(0));
             regions.add(
-                    doc.getElementById("USA.2C_US_Territories_.26_Canada_.28FCC_band_plan.29").parent().nextElementSibling().nextElementSibling().child(0));
+                    doc.getElementById("South_America_and_Central_America_.28APT_band_plan.29")
+                            .parent().nextElementSibling().child(0));
+            regions.add(
+                    doc.getElementById("USA.2C_US_Territories_.26_Canada_.28FCC_band_plan.29")
+                            .parent().nextElementSibling().nextElementSibling().child(0));
             // wiki table has a paragraph after this that needs to be skipped
             // TODO what do do about grayed out ones?
             regions.add(doc.getElementById("Asia").parent().nextElementSibling().child(0));
@@ -140,16 +147,14 @@ public class GetNetworksTask extends AsyncTask<HashMap<String, String>, Void, Ar
                         networks.add(new Network(tds.get(1).text().trim(), tblCountry, Helper.getBand(cleanFootnote(tds.get(3).text()), "LTE")));
                     }
                 }
-            }
-            else if (tds.get(0).attr("rowspan").equals("") && tds.get(0).children().size() != 0 && tds.get(0).child(0).attr("class").equals("flagicon")) {
+            } else if (tds.get(0).attr("rowspan").equals("") && tds.get(0).children().size() != 0 && tds.get(0).child(0).attr("class").equals("flagicon")) {
                 if (tds.get(0).text().contains(country)) {
                     if (!(tds.get(3).text().contains("?"))) { // Band should not be "?"
                         Log.d(TAG, tds.get(0).text() + ", " + tds.get(1).text().trim() + ", " + Helper.getBand(cleanFootnote(tds.get(3).text()), "LTE").getFrequency());
                         networks.add(new Network(tds.get(1).text().trim(), tds.get(0).text(), Helper.getBand(cleanFootnote(tds.get(3).text()), "LTE")));
                     }
                 }
-            }
-            else {
+            } else {
                 if (tblCountry.contains(country)) {
                     if (!(tds.get(2).text().contains("?"))) { // Band should not be "?"
                         Log.d(TAG, tblCountry + ", " + tds.get(0).text().trim() + ", " + Helper.getBand(cleanFootnote(tds.get(2).text()), "LTE").getFrequency());

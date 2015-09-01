@@ -59,7 +59,7 @@ public class Band {
 
     @Override
     public int hashCode() {
-        return 19 * (this.band.hashCode() + this.technology.hashCode());
+        return 51 * (this.band.hashCode() + this.technology.hashCode());
     }
 
     public String toString() {

@@ -13,12 +13,15 @@ import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 
 public class NetworkFragment extends Fragment {
@@ -29,6 +32,7 @@ public class NetworkFragment extends Fragment {
 
     private Spinner countrySpinner;
     private static ListView listView;
+    private static TableRow mProgress;
     private static NetworkAdapter adapter;
     ArrayList<Network> networks;
 
@@ -54,6 +58,7 @@ public class NetworkFragment extends Fragment {
         view = inflater.inflate(R.layout.fragment_network, container, false);
         context = this.getActivity().getApplicationContext();
         listView = (ListView) view.findViewById(R.id.listView2);
+        mProgress = (TableRow) view.findViewById(R.id.progressBarRow);
 
         Button button = (Button) view.findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
@@ -64,7 +69,10 @@ public class NetworkFragment extends Fragment {
                 tech.put("UMTS", (String) countrySpinner.getSelectedItem());
                 tech.put("LTE", (String) countrySpinner.getSelectedItem());
                 task.execute(tech);
+
                 Helper.showSnackbar(view, "Finding networks...");
+                mProgress.setVisibility(View.VISIBLE);
+
             }
         });
 
@@ -98,6 +106,9 @@ public class NetworkFragment extends Fragment {
             }
         }
         Collections.sort(countries);
+        countries.remove("Europe");
+        countries.remove("Latin America");
+        countries.remove("World");
         ArrayAdapter<String> locationAdapter = new ArrayAdapter<>(this.getActivity().getApplicationContext(), android.R.layout.simple_list_item_1, countries);
         countrySpinner.setAdapter(locationAdapter);
 
@@ -109,7 +120,7 @@ public class NetworkFragment extends Fragment {
     public static void updateList(ArrayList<Network> networks){
         if (networks.size() != 0) {
             ArrayList<Network> supported_networks = new ArrayList<>();
-            HashMap<Key, ArrayList<Network>> supported_consolidated_networks = new HashMap<>();
+            HashMap<String, HashMap<String, HashSet<Network>>> supported_consolidated_networks = new HashMap<>();
 
             SharedPreferences settings = context.getSharedPreferences(Helper.Preferences.PREFS_NAME, 0);
             String bands = settings.getString("Bands", "");
@@ -141,15 +152,23 @@ public class NetworkFragment extends Fragment {
             }
 
             for (Network network : supported_networks) {
-                if (!supported_consolidated_networks.containsKey(new Key(network.getOperator(), network.getBand().getTechnology()))){
-                    ArrayList<Network> all_networks = new ArrayList<>();
+                if (!supported_consolidated_networks.containsKey(network.getOperator())) {
+                    HashMap<String, HashSet<Network>> operator_networks = new HashMap<>();
+                    HashSet<Network> all_networks = new HashSet<>();
                     all_networks.add(network);
-                    supported_consolidated_networks.put(new Key(network.getOperator(), network.getBand().getTechnology()), all_networks);
+                    operator_networks.put(network.getBand().getTechnology(), all_networks);
+                    supported_consolidated_networks.put(network.getOperator(), operator_networks);
                 } else {
-                    supported_consolidated_networks.get(new Key(network.getOperator(), network.getBand().getTechnology())).add(network);
+                    if (!supported_consolidated_networks.get(network.getOperator()).containsKey(network.getBand().getTechnology())) {
+                        HashSet<Network> all_networks = new HashSet<>();
+                        all_networks.add(network);
+                        supported_consolidated_networks.get(network.getOperator()).put(network.getBand().getTechnology(), all_networks);
+                    } else {
+                        supported_consolidated_networks.get(network.getOperator()).get(network.getBand().getTechnology()).add(network);
+                    }
                 }
             }
-
+            mProgress.setVisibility(View.INVISIBLE);
             adapter = new NetworkAdapter(supported_consolidated_networks);
             listView.setAdapter(adapter);
         }
@@ -161,11 +180,11 @@ public class NetworkFragment extends Fragment {
 
     private static class NetworkAdapter extends BaseAdapter {
 
-        private HashMap<Key, ArrayList<Network>> mData = new HashMap<>();
-        private Key[] mKeys;
-        public NetworkAdapter(HashMap<Key, ArrayList<Network>> data){
+        private HashMap<String, HashMap<String, HashSet<Network>>> mData = new HashMap<>();
+        private String[] mKeys;
+        public NetworkAdapter(HashMap<String, HashMap<String, HashSet<Network>>> data){
             mData  = data;
-            mKeys = mData.keySet().toArray(new Key[data.size()]);
+            mKeys = mData.keySet().toArray(new String[data.size()]);
         }
 
         @Override
@@ -174,7 +193,7 @@ public class NetworkFragment extends Fragment {
         }
 
         @Override
-        public ArrayList<Network> getItem(int position) {
+        public HashMap<String, HashSet<Network>> getItem(int position) {
             return mData.get(mKeys[position]);
         }
 
@@ -187,61 +206,45 @@ public class NetworkFragment extends Fragment {
         public View getView(int position, View convertView, ViewGroup parent) {
             // Get the data item for this position
 
-            Key network_key = mKeys[position];
-            ArrayList<Network> networks = getItem(position);
+            String operator = mKeys[position];
+            HashMap<String, HashSet<Network>> networks = getItem(position);
 
             //Network network = getItem(position);
             // Check if an existing view is being reused, otherwise inflate the view
             if (convertView == null) {
-                convertView = LayoutInflater.from(NetworkFragment.context).inflate(android.R.layout.simple_list_item_2, parent, false);
+                convertView = LayoutInflater.from(NetworkFragment.context).inflate(R.layout.custom_operator_item, parent, false);
             }
 
-            TextView tv = (TextView) convertView.findViewById(android.R.id.text1);
-            tv.setText(network_key.operator);
+            TextView tv = (TextView) convertView.findViewById(R.id.operator);
+            tv.setText(operator);
 
-            StringBuilder sb = new StringBuilder();
-            sb.append(network_key.technology);
-            sb.append(": ");
-            for (Network network : networks) {
-                sb.append(network.getBand().getFrequency());
-                sb.append(" MHz (Band ");
-                sb.append(network.getBand().getBand());
-                sb.append("), ");
+            int[] networkHolders = new int[]{ R.id.network1, R.id.network2 };
+            String[] technologies = networks.keySet().toArray(new String[networks.keySet().size()]);
+
+            for (int i = 0; i < technologies.length; i++) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(technologies[i]);
+                sb.append(": ");
+                for (Network network : networks.get(technologies[i])) {
+                    sb.append(network.getBand().getFrequency());
+                    sb.append(" MHz (B");
+                    sb.append(network.getBand().getBand());
+                    sb.append("), ");
+                }
+                sb.replace(sb.length() - 2, sb.length(), "");
+                TextView tv2 = (TextView) convertView.findViewById(networkHolders[i]);
+                tv2.setText(sb.toString());
             }
-            sb.replace(sb.length() - 2, sb.length(), "");
 
-
-            TextView tv2 = (TextView) convertView.findViewById(android.R.id.text2);
-            tv2.setText(sb.toString());
+            if (technologies.length < networkHolders.length) {
+                for (int i = networkHolders.length - 1; i > technologies.length - 1; i--) {
+                    TextView tv2 = (TextView) convertView.findViewById(networkHolders[i]);
+                    tv2.setText("");
+                }
+            }
 
             // Return the completed view to render on screen
             return convertView;
         }
-    }
-
-    private static class Key {
-
-        private final String operator;
-        private final String technology;
-
-        public Key(String operator, String technology) {
-            this.operator = operator;
-            this.technology = technology;
-        }
-
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Key)) return false;
-            Key key = (Key) o;
-            return operator.equals(key.operator) && technology.equals(key.technology);
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * operator.hashCode() + technology.hashCode();
-        }
-
     }
 }
